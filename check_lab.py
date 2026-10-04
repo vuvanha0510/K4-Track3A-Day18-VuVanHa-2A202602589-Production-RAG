@@ -60,9 +60,12 @@ def run_tests() -> tuple[int, int]:
     """Run pytest and return (passed, total)."""
     try:
         import re
+        # Timeout phải > 240s: suite nạp nhiều model nặng
+        # (all-MiniLM-L6-v2, BAAI/bge-m3, bge-reranker-v2-m3) nên lần chạy đầu
+        # mất khoảng 4 phút, nếu timeout 120s sẽ báo sai "không chạy được tests".
         result = subprocess.run(
             [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=no", "-q"],
-            capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace"
+            capture_output=True, text=True, timeout=900, encoding="utf-8", errors="replace"
         )
         lines = result.stdout.strip().split("\n")
         summary = lines[-1] if lines else ""

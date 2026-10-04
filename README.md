@@ -19,9 +19,18 @@ Xem **ASSIGNMENT.md** để biết chi tiết từng module và timeline.
 
 | Dependency | Bắt buộc? | Dùng cho |
 |-----------|-----------|----------|
-| Docker (Qdrant) | ✅ Có | M2 Dense Search |
+| Docker (Qdrant) | ⚠️ Khuyến nghị | M2 Dense Search (thiếu thì tự fallback sang in-memory) |
 | Python 3.11+ | ✅ Có | Tất cả modules (RAGAS cần 3.11+ cho asyncio) |
-| `OPENAI_API_KEY` | ⚠️ M4+M5 | RAGAS eval (M4), Enrichment LLM (M5) |
+| `GEMINI_API_KEY` **hoặc** `OPENAI_API_KEY` | ⚠️ M4+M5 | RAGAS eval (M4), Enrichment LLM (M5) |
+
+> **Lưu ý về API key:** dự án hỗ trợ cả hai nhà cung cấp qua OpenAI-compatible client.
+> Nếu dùng Gemini, hãy điền `GEMINI_API_KEY` — code sẽ tự chuyển base URL sang
+> endpoint Gemini và dùng đúng model chat (`gemini-3.8-flash`) + embeddings (`gemini-embedding-001`).
+> Endpoint Gemini **không** phục vụ `text-embedding-3-small`.
+
+> **Giới hạn quota Gemini free tier:** 20 requests/ngày/model. Pipeline có
+> `ENRICH_MAX_CHUNKS` (mặc định 20) + cache JSON + circuit breaker để không vượt quota.
+> Nếu hết quota, hệ thống tự chuyển sang **fallback offline** thay vì crash.
 
 **Pre-download models** (tránh timeout trong lab):
 ```bash
@@ -75,7 +84,13 @@ python naive_baseline.py                # Khởi tạo baseline
 ```bash
 python main.py                          # Chạy Naive + Production + In bảng so sánh
 python check_lab.py                     # Script kiểm tra hợp lệ trước khi nộp (chạy được trên mọi OS)
+pytest tests/ -q                        # 37 unit tests
+python analysis/offline_retrieval_eval.py   # Đo context recall/precision KHÔNG cần LLM
 ```
+
+> **`offline_retrieval_eval.py`** dùng khi hết quota LLM: đo chất lượng retrieval
+> (context recall/precision/hit-rate cho BM25 vs Dense vs Hybrid) bằng token overlap,
+> nên vẫn có số liệu so sánh được giữa các phương pháp.
 
 ## Cấu trúc repo
 
@@ -121,8 +136,11 @@ K4-Track3A-Production-RAG/
 │
 ├── analysis/                   # ★ Deliverable
 │   ├── failure_analysis.md     # Phân tích failures (cá nhân)
+│   ├── offline_retrieval_eval.py    # Đo recall/precision không cần LLM
+│   ├── offline_retrieval_results.json  # Kết quả đo được
 │   └── reflections/            # Reflection cá nhân
-│       └── reflection_TEMPLATE.md
+│       ├── reflection_TEMPLATE.md
+│       └── reflection_VuVanHa.md     # ★ Bản điền của tôi
 │
 ├── reports/                    # ★ Auto-generated (bắt buộc: reports/ragas_report.json)
 │   ├── ragas_report.json
